@@ -225,7 +225,7 @@
               )}
 
               {/* Navigation */}
-              <nav className="bg-white p-3 shadow-lg rounded-t-xl flex justify-around items-center border-t border-gray-200">
+              <nav className="bg-white p-4 shadow-lg rounded-t-xl flex justify-around items-center border-t border-gray-200">
                 <NavItem icon="+" label="Add Session" onClick={() => { setCurrentPage('addSession'); setEditingSession(null); }} current={currentPage === 'addSession'} />
                 <NavItem icon="📊" label="Summary" onClick={() => setCurrentPage('summary')} current={currentPage === 'summary'} />
                 <NavItem icon="📋" label="Activities" onClick={() => setCurrentPage('activities')} current={currentPage === 'activities'} />
@@ -283,6 +283,7 @@
             : ['Vam', '']; // Modified: Added an empty string for the second default participant field
           const [participants, setParticipants] = React.useState(initialParticipants);
           const [totalExpense, setTotalExpense] = React.useState(editingSession ? editingSession.totalExpense.toString() : '');
+          const [note, setNote] = React.useState(editingSession ? editingSession.note : ''); // New state for note
 
           const handleAddParticipant = () => {
             setParticipants([...participants, '']);
@@ -312,6 +313,7 @@
               date: sessionDate,
               participants: filteredParticipants, // Store only other participants
               totalExpense: parseFloat(totalExpense),
+              note: note, // Include the note field
             };
 
             onAddOrUpdateSession(sessionToSave);
@@ -322,6 +324,7 @@
                 setSessionDate(new Date().toISOString().split('T')[0]);
                 setParticipants(['Vam', '']); // Reset to default Vam and one empty field
                 setTotalExpense('');
+                setNote(''); // Reset note field
             }
           };
 
@@ -363,7 +366,7 @@
                         value={participant}
                         onChange={(e) => handleParticipantChange(index, e.target.value)}
                         className="flex-grow p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder={index === 0 ? 'Vam (You)' : `Friend ${index} Name`} 
+                        placeholder={index === 0 ? 'Vam (You)' : `Friend ${index} Name`}
                         readOnly={index === 0} // Make 'Vam' input read-only
                         required
                       />
@@ -401,6 +404,18 @@
                     step="0.01"
                     required
                   />
+                </div>
+
+                <div>
+                  <label htmlFor="note" className="block text-sm font-medium text-gray-700 mb-1">Note (Optional)</label>
+                  <textarea
+                    id="note"
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                    className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Add any additional notes for this session..."
+                    rows="3"
+                  ></textarea>
                 </div>
 
                 <button
@@ -537,6 +552,12 @@
                   <li key={index}>{p}</li>
                 ))}
               </ul>
+              {session.note && ( // Only display note if it exists
+                <div className="mt-4 p-3 bg-gray-100 rounded-xl">
+                  <h3 className="text-lg font-semibold mb-2">Note:</h3>
+                  <p className="text-gray-700 whitespace-pre-wrap">{session.note}</p>
+                </div>
+              )}
             </div>
           );
         };
@@ -546,3 +567,4 @@
 
     </script>
 </body>
+</html>
