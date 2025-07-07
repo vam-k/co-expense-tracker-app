@@ -1,378 +1,425 @@
-import React, { useState, useEffect, useCallback } from 'react';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Co-Expense Tracker</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Inter font from Google Fonts (Optional, but good for consistent look) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom animation for message box */
+        @keyframes fadeInOut {
+            0%, 100% { opacity: 0; transform: translateY(20px); }
+            10%, 90% { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in-out {
+            animation: fadeInOut 3s ease-in-out forwards;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
 
-// Main App Component
-function App() {
-  const [currentPage, setCurrentPage] = useState('addSession'); // Default to addSession page, no auth
-  const [sessions, setSessions] = useState([]);
-  const [friendBalances, setFriendBalances] = useState({}); // { 'Friend Name': balance }
-  const [message, setMessage] = useState(''); // For displaying user messages (e.g., success, error)
+    <!-- React CDN -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Babel CDN - for transpiling JSX in the browser. Not for production. -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-  // --- Data Persistence (Local Storage only) ---
-  const loadData = useCallback(() => {
-    try {
-      const storedSessions = localStorage.getItem('coExpenseTrackerSessions');
-      const storedBalances = localStorage.getItem('coExpenseTrackerBalances');
-      if (storedSessions) {
-        setSessions(JSON.parse(storedSessions));
-      }
-      if (storedBalances) {
-        setFriendBalances(JSON.parse(storedBalances));
-      }
-      setMessage('Data loaded successfully.');
-    } catch (error) {
-      console.error('Error loading data from local storage:', error);
-      setMessage('Error loading data.');
-    }
-  }, []);
+    <script type="text/babel">
+        // Your React App Component code goes here
+        // Make sure to copy the entire 'App' function and all its sub-components
+        // (NavItem, AddSessionPage, SummaryPage, ActivitiesPage, SessionDetailPage)
+        // from the previous 'co-expense-tracker-app' immersive.
 
-  const saveData = useCallback((currentSessions, currentBalances) => {
-    try {
-      localStorage.setItem('coExpenseTrackerSessions', JSON.stringify(currentSessions));
-      localStorage.setItem('coExpenseTrackerBalances', JSON.stringify(currentBalances));
-      setMessage('Data saved successfully.');
-    } catch (error) {
-      console.error('Error saving data to local storage:', error);
-      setMessage('Error saving data.');
-    }
-  }, []);
+        // Main App Component
+        function App() {
+          // Changed useState, useEffect, useCallback to React.useState, React.useEffect, React.useCallback
+          const [currentPage, setCurrentPage] = React.useState('addSession'); // Default to addSession page, no auth
+          const [sessions, setSessions] = React.useState([]);
+          const [friendBalances, setFriendBalances] = React.useState({}); // { 'Friend Name': balance }
+          const [message, setMessage] = React.useState(''); // For displaying user messages (e.g., success, error)
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+          // --- Data Persistence (Local Storage only) ---
+          const loadData = React.useCallback(() => {
+            try {
+              const storedSessions = localStorage.getItem('coExpenseTrackerSessions');
+              const storedBalances = localStorage.getItem('coExpenseTrackerBalances');
+              if (storedSessions) {
+                setSessions(JSON.parse(storedSessions));
+              }
+              if (storedBalances) {
+                setFriendBalances(JSON.parse(storedBalances));
+              }
+              setMessage('Data loaded successfully.');
+            } catch (error) {
+              console.error('Error loading data from local storage:', error);
+              setMessage('Error loading data.');
+            }
+          }, []);
 
-  // --- Session Management Logic ---
-  const handleAddSession = (newSession) => {
-    // Calculate individual share
-    const numParticipants = newSession.participants.length + 1; // +1 for the app user
-    const individualShare = newSession.totalExpense / numParticipants;
+          const saveData = React.useCallback((currentSessions, currentBalances) => {
+            try {
+              localStorage.setItem('coExpenseTrackerSessions', JSON.stringify(currentSessions));
+              localStorage.setItem('coExpenseTrackerBalances', JSON.stringify(currentBalances));
+              setMessage('Data saved successfully.');
+            } catch (error) {
+              console.error('Error saving data to local storage:', error);
+              setMessage('Error saving data.');
+            }
+          }, []);
 
-    // Update friend balances
-    const updatedBalances = { ...friendBalances };
-    newSession.participants.forEach(friend => {
-      updatedBalances[friend] = (updatedBalances[friend] || 0) + individualShare;
-    });
+          React.useEffect(() => {
+            loadData();
+          }, [loadData]);
 
-    const updatedSessions = [...sessions, newSession];
-    setSessions(updatedSessions);
-    setFriendBalances(updatedBalances);
-    saveData(updatedSessions, updatedBalances);
-    setMessage('Session added successfully!');
-    setCurrentPage('summary'); // Go to summary after adding session
-  };
+          // --- Session Management Logic ---
+          const handleAddSession = (newSession) => {
+            // Calculate individual share
+            const numParticipants = newSession.participants.length + 1; // +1 for the app user
+            const individualShare = newSession.totalExpense / numParticipants;
 
-  // --- Balance Settlement Logic ---
-  const handleSettleUp = (friendName) => {
-    const updatedBalances = { ...friendBalances };
-    if (updatedBalances[friendName]) {
-      updatedBalances[friendName] = 0; // Set balance to zero
-      setFriendBalances(updatedBalances);
-      saveData(sessions, updatedBalances);
-      setMessage(`${friendName}'s balance settled!`);
-    }
-  };
+            // Update friend balances
+            const updatedBalances = { ...friendBalances };
+            newSession.participants.forEach(friend => {
+              updatedBalances[friend] = (updatedBalances[friend] || 0) + individualShare;
+            });
 
-  // --- Message Display ---
-  useEffect(() => {
-    if (message) {
-      const timer = setTimeout(() => {
-        setMessage('');
-      }, 3000); // Clear message after 3 seconds
-      return () => clearTimeout(timer);
-    }
-  }, [message]);
+            const updatedSessions = [...sessions, newSession];
+            setSessions(updatedSessions);
+            setFriendBalances(updatedBalances);
+            saveData(updatedSessions, updatedBalances);
+            setMessage('Session added successfully!');
+            setCurrentPage('summary'); // Go to summary after adding session
+          };
 
-  // --- Render Pages ---
-  const renderPage = () => {
-    // No authentication page, directly render content
-    switch (currentPage) {
-      case 'addSession':
-        return <AddSessionPage onAddSession={handleAddSession} message={message} />;
-      case 'summary':
-        return <SummaryPage friendBalances={friendBalances} onSettleUp={handleSettleUp} message={message} />;
-      case 'activities':
-        return <ActivitiesPage sessions={sessions} message={message} />;
-      default:
-        return <AddSessionPage onAddSession={handleAddSession} message={message} />;
-    }
-  };
+          // --- Balance Settlement Logic ---
+          const handleSettleUp = (friendName) => {
+            const updatedBalances = { ...friendBalances };
+            if (updatedBalances[friendName]) {
+              updatedBalances[friendName] = 0; // Set balance to zero
+              setFriendBalances(updatedBalances);
+              saveData(sessions, updatedBalances);
+              setMessage(`${friendName}'s balance settled!`);
+            }
+          };
 
-  return (
-    <div className="min-h-screen bg-gray-100 flex flex-col font-sans text-gray-800">
-      {/* Header */}
-      <header className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white p-4 shadow-md rounded-b-xl">
-        <h1 className="text-3xl font-bold text-center">Co-Expense Tracker</h1>
-      </header>
+          // --- Message Display ---
+          React.useEffect(() => {
+            if (message) {
+              const timer = setTimeout(() => {
+                setMessage('');
+              }, 3000); // Clear message after 3 seconds
+              return () => clearTimeout(timer);
+            }
+          }, [message]);
 
-      {/* Main Content */}
-      <main className="flex-grow p-4 overflow-y-auto">
-        {renderPage()}
-      </main>
+          // --- Render Pages ---
+          const renderPage = () => {
+            // No authentication page, directly render content
+            switch (currentPage) {
+              case 'addSession':
+                return <AddSessionPage onAddSession={handleAddSession} message={message} />;
+              case 'summary':
+                return <SummaryPage friendBalances={friendBalances} onSettleUp={handleSettleUp} message={message} />;
+              case 'activities':
+                return <ActivitiesPage sessions={sessions} message={message} />;
+              default:
+                return <AddSessionPage onAddSession={handleAddSession} message={message} />;
+            }
+          };
 
-      {/* Message Box */}
-      {message && (
-        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 bg-black bg-opacity-75 text-white text-sm px-4 py-2 rounded-full shadow-lg z-50 animate-fade-in-out">
-          {message}
-        </div>
-      )}
+          return (
+            <div className="min-h-screen bg-gray-100 flex flex-col font-sans text-gray-800">
+              {/* Header */}
+              <header className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white p-4 shadow-md rounded-b-xl">
+                <h1 className="text-3xl font-bold text-center">Co-Expense Tracker</h1>
+              </header>
 
-      {/* Navigation */}
-      <nav className="bg-white p-3 shadow-lg rounded-t-xl flex justify-around items-center border-t border-gray-200">
-        <NavItem icon="+" label="Add Session" onClick={() => setCurrentPage('addSession')} current={currentPage === 'addSession'} />
-        <NavItem icon="📊" label="Summary" onClick={() => setCurrentPage('summary')} current={currentPage === 'summary'} />
-        <NavItem icon="📋" label="Activities" onClick={() => setCurrentPage('activities')} current={currentPage === 'activities'} />
-      </nav>
-    </div>
-  );
-}
+              {/* Main Content */}
+              <main className="flex-grow p-4 overflow-y-auto">
+                {renderPage()}
+              </main>
 
-// --- Navigation Item Component ---
-const NavItem = ({ icon, label, onClick, current }) => (
-  <button
-    onClick={onClick}
-    className={`flex flex-col items-center p-2 rounded-lg transition-colors duration-200 ${
-      current ? 'text-blue-600 bg-blue-50' : 'text-gray-500 hover:text-blue-600 hover:bg-gray-50'
-    }`}
-  >
-    <span className="text-2xl">{icon}</span>
-    <span className="text-xs mt-1">{label}</span>
-  </button>
-);
+              {/* Message Box */}
+              {message && (
+                <div className="fixed bottom-20 left-1/2 -translate-x-1/2 bg-black bg-opacity-75 text-white text-sm px-4 py-2 rounded-full shadow-lg z-50 animate-fade-in-out">
+                  {message}
+                </div>
+              )}
 
-// --- Add Session Page Component ---
-const AddSessionPage = ({ onAddSession, message }) => {
-  const [sessionTitle, setSessionTitle] = useState('');
-  const [sessionDate, setSessionDate] = useState(new Date().toISOString().split('T')[0]); // YYYY-MM-DD
-  const [participants, setParticipants] = useState(['']); // Start with one empty participant input
-  const [totalExpense, setTotalExpense] = useState('');
+              {/* Navigation */}
+              <nav className="bg-white p-3 shadow-lg rounded-t-xl flex justify-around items-center border-t border-gray-200">
+                <NavItem icon="+" label="Add Session" onClick={() => setCurrentPage('addSession')} current={currentPage === 'addSession'} />
+                <NavItem icon="📊" label="Summary" onClick={() => setCurrentPage('summary')} current={currentPage === 'summary'} />
+                <NavItem icon="📋" label="Activities" onClick={() => setCurrentPage('activities')} current={currentPage === 'activities'} />
+              </nav>
+            </div>
+          );
+        }
 
-  const handleAddParticipant = () => {
-    setParticipants([...participants, '']);
-  };
+        // --- Navigation Item Component ---
+        const NavItem = ({ icon, label, onClick, current }) => (
+          <button
+            onClick={onClick}
+            className={`flex flex-col items-center p-2 rounded-lg transition-colors duration-200 ${
+              current ? 'text-blue-600 bg-blue-50' : 'text-gray-500 hover:text-blue-600 hover:bg-gray-50'
+            }`}
+          >
+            <span className="text-2xl">{icon}</span>
+            <span className="text-xs mt-1">{label}</span>
+          </button>
+        );
 
-  const handleParticipantChange = (index, value) => {
-    const newParticipants = [...participants];
-    newParticipants[index] = value;
-    setParticipants(newParticipants);
-  };
+        // --- Add Session Page Component ---
+        const AddSessionPage = ({ onAddSession, message }) => {
+          // Changed useState to React.useState
+          const [sessionTitle, setSessionTitle] = React.useState('');
+          const [sessionDate, setSessionDate] = React.useState(new Date().toISOString().split('T')[0]); //YYYY-MM-DD
+          const [participants, setParticipants] = React.useState(['']); // Start with one empty participant input
+          const [totalExpense, setTotalExpense] = React.useState('');
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+          const handleAddParticipant = () => {
+            setParticipants([...participants, '']);
+          };
 
-    // Basic validation
-    if (!sessionTitle || !sessionDate || !totalExpense || participants.some(p => !p.trim())) {
-      alert('Please fill in all fields and ensure all participant names are entered.'); // Using alert for simplicity, replace with custom modal in production
-      return;
-    }
+          const handleParticipantChange = (index, value) => {
+            const newParticipants = [...participants];
+            newParticipants[index] = value;
+            setParticipants(newParticipants);
+          };
 
-    const newSession = {
-      id: Date.now(), // Unique ID for the session
-      title: sessionTitle,
-      date: sessionDate,
-      participants: participants.filter(p => p.trim() !== ''), // Filter out empty participant fields
-      totalExpense: parseFloat(totalExpense),
-    };
+          const handleSubmit = (e) => {
+            e.preventDefault();
 
-    onAddSession(newSession);
+            // Basic validation
+            if (!sessionTitle || !sessionDate || !totalExpense || participants.some(p => !p.trim())) {
+              alert('Please fill in all fields and ensure all participant names are entered.'); // Using alert for simplicity, replace with custom modal in production
+              return;
+            }
 
-    // Reset form
-    setSessionTitle('');
-    setSessionDate(new Date().toISOString().split('T')[0]);
-    setParticipants(['']);
-    setTotalExpense('');
-  };
+            const newSession = {
+              id: Date.now(), // Unique ID for the session
+              title: sessionTitle,
+              date: sessionDate,
+              participants: participants.filter(p => p.trim() !== ''), // Filter out empty participant fields
+              totalExpense: parseFloat(totalExpense),
+            };
 
-  return (
-    <div className="p-4 bg-white rounded-2xl shadow-xl">
-      <h2 className="text-2xl font-semibold mb-6 text-center">Add New Session</h2>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label htmlFor="sessionTitle" className="block text-sm font-medium text-gray-700 mb-1">Session Title</label>
-          <input
-            type="text"
-            id="sessionTitle"
-            value={sessionTitle}
-            onChange={(e) => setSessionTitle(e.target.value)}
-            className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="e.g., Tennis Match at Park"
-            required
-          />
-        </div>
+            onAddSession(newSession);
 
-        <div>
-          <label htmlFor="sessionDate" className="block text-sm font-medium text-gray-700 mb-1">Date</label>
-          <input
-            type="date"
-            id="sessionDate"
-            value={sessionDate}
-            onChange={(e) => setSessionDate(e.target.value)}
-            className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          />
-        </div>
+            // Reset form
+            setSessionTitle('');
+            setSessionDate(new Date().toISOString().split('T')[0]);
+            setParticipants(['']);
+            setTotalExpense('');
+          };
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Participants (Friends)</label>
-          {participants.map((participant, index) => (
-            <div key={index} className="flex items-center space-x-2 mb-2">
-              <input
-                type="text"
-                value={participant}
-                onChange={(e) => handleParticipantChange(index, e.target.value)}
-                className="flex-grow p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder={`Friend ${index + 1} Name`}
-                required
-              />
-              {participants.length > 1 && (
+          return (
+            <div className="p-4 bg-white rounded-2xl shadow-xl">
+              <h2 className="text-2xl font-semibold mb-6 text-center">Add New Session</h2>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label htmlFor="sessionTitle" className="block text-sm font-medium text-gray-700 mb-1">Session Title</label>
+                  <input
+                    type="text"
+                    id="sessionTitle"
+                    value={sessionTitle}
+                    onChange={(e) => setSessionTitle(e.target.value)}
+                    className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="e.g., Tennis Match at Park"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="sessionDate" className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                  <input
+                    type="date"
+                    id="sessionDate"
+                    value={sessionDate}
+                    onChange={(e) => setSessionDate(e.target.value)}
+                    className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Participants (Friends)</label>
+                  {participants.map((participant, index) => (
+                    <div key={index} className="flex items-center space-x-2 mb-2">
+                      <input
+                        type="text"
+                        value={participant}
+                        onChange={(e) => handleParticipantChange(index, e.target.value)}
+                        className="flex-grow p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder={`Friend ${index + 1} Name`}
+                        required
+                      />
+                      {participants.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => setParticipants(participants.filter((_, i) => i !== index))}
+                          className="p-2 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors duration-200"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm6 0a1 1 0 11-2 0v6a1 1 0 112 0V8z" clipRule="evenodd" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={handleAddParticipant}
+                    className="w-full bg-green-500 text-white p-3 rounded-xl font-semibold hover:bg-green-600 transition-colors duration-200 shadow-md mt-2"
+                  >
+                    + Add Friend
+                  </button>
+                </div>
+
+                <div>
+                  <label htmlFor="totalExpense" className="block text-sm font-medium text-gray-700 mb-1">Total Session Expense</label>
+                  <input
+                    type="number"
+                    id="totalExpense"
+                    value={totalExpense}
+                    onChange={(e) => setTotalExpense(e.target.value)}
+                    className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="e.g., 50.00"
+                    step="0.01"
+                    required
+                  />
+                </div>
+
                 <button
-                  type="button"
-                  onClick={() => setParticipants(participants.filter((_, i) => i !== index))}
-                  className="p-2 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors duration-200"
+                  type="submit"
+                  className="w-full bg-blue-500 text-white p-4 rounded-xl font-bold text-lg hover:bg-blue-600 transition-colors duration-200 shadow-lg"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm6 0a1 1 0 11-2 0v6a1 1 0 112 0V8z" clipRule="evenodd" />
-                  </svg>
+                  Add Session
                 </button>
+              </form>
+            </div>
+          );
+        };
+
+        // --- Summary Page Component ---
+        const SummaryPage = ({ friendBalances, onSettleUp, message }) => {
+          const friends = Object.keys(friendBalances).sort();
+
+          return (
+            <div className="p-4 bg-white rounded-2xl shadow-xl">
+              <h2 className="text-2xl font-semibold mb-6 text-center">Summary</h2>
+              {friends.length === 0 ? (
+                <p className="text-center text-gray-500">No expenses recorded yet. Add a session to see summary.</p>
+              ) : (
+                <ul className="space-y-3">
+                  {friends.map(friend => (
+                    <li key={friend} className="flex items-center justify-between bg-gray-50 p-4 rounded-xl shadow-sm">
+                      <div className="flex flex-col">
+                        <span className="font-medium text-lg">{friend}</span>
+                        <span className={`text-sm ${friendBalances[friend] > 0 ? 'text-green-600' : 'text-gray-500'}`}>
+                          {friendBalances[friend] > 0 ? `Owes you: $${friendBalances[friend].toFixed(2)}` : 'Settled'}
+                        </span>
+                      </div>
+                      {friendBalances[friend] > 0 && (
+                        <button
+                          onClick={() => onSettleUp(friend)}
+                          className="bg-purple-500 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-purple-600 transition-colors duration-200 shadow-md"
+                        >
+                          Settle Up
+                        </button>
+                      )}
+                    </li>
+                  ))}
+                </ul>
               )}
             </div>
-          ))}
-          <button
-            type="button"
-            onClick={handleAddParticipant}
-            className="w-full bg-green-500 text-white p-3 rounded-xl font-semibold hover:bg-green-600 transition-colors duration-200 shadow-md mt-2"
-          >
-            + Add Friend
-          </button>
-        </div>
+          );
+        };
 
-        <div>
-          <label htmlFor="totalExpense" className="block text-sm font-medium text-gray-700 mb-1">Total Session Expense</label>
-          <input
-            type="number"
-            id="totalExpense"
-            value={totalExpense}
-            onChange={(e) => setTotalExpense(e.target.value)}
-            className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="e.g., 50.00"
-            step="0.01"
-            required
-          />
-        </div>
+        // --- Activities Page Component ---
+        const ActivitiesPage = ({ sessions, message }) => {
+          // Changed useState to React.useState
+          const [selectedSession, setSelectedSession] = React.useState(null);
 
-        <button
-          type="submit"
-          className="w-full bg-blue-500 text-white p-4 rounded-xl font-bold text-lg hover:bg-blue-600 transition-colors duration-200 shadow-lg"
-        >
-          Add Session
-        </button>
-      </form>
-    </div>
-  );
-};
+          const handleBackToList = () => {
+            setSelectedSession(null);
+          };
 
-// --- Summary Page Component ---
-const SummaryPage = ({ friendBalances, onSettleUp, message }) => {
-  const friends = Object.keys(friendBalances).sort();
+          if (selectedSession) {
+            return (
+              <SessionDetailPage session={selectedSession} onBack={handleBackToList} />
+            );
+          }
 
-  return (
-    <div className="p-4 bg-white rounded-2xl shadow-xl">
-      <h2 className="text-2xl font-semibold mb-6 text-center">Summary</h2>
-      {friends.length === 0 ? (
-        <p className="text-center text-gray-500">No expenses recorded yet. Add a session to see summary.</p>
-      ) : (
-        <ul className="space-y-3">
-          {friends.map(friend => (
-            <li key={friend} className="flex items-center justify-between bg-gray-50 p-4 rounded-xl shadow-sm">
-              <div className="flex flex-col">
-                <span className="font-medium text-lg">{friend}</span>
-                <span className={`text-sm ${friendBalances[friend] > 0 ? 'text-green-600' : 'text-gray-500'}`}>
-                  {friendBalances[friend] > 0 ? `Owes you: $${friendBalances[friend].toFixed(2)}` : 'Settled'}
-                </span>
-              </div>
-              {friendBalances[friend] > 0 && (
-                <button
-                  onClick={() => onSettleUp(friend)}
-                  className="bg-purple-500 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-purple-600 transition-colors duration-200 shadow-md"
-                >
-                  Settle Up
-                </button>
+          return (
+            <div className="p-4 bg-white rounded-2xl shadow-xl">
+              <h2 className="text-2xl font-semibold mb-6 text-center">All Activities</h2>
+              {sessions.length === 0 ? (
+                <p className="text-center text-gray-500">No sessions recorded yet.</p>
+              ) : (
+                <ul className="space-y-3">
+                  {[...sessions].reverse().map(session => ( // Display in reverse chronological order
+                    <li
+                      key={session.id}
+                      onClick={() => setSelectedSession(session)}
+                      className="bg-gray-50 p-4 rounded-xl shadow-sm cursor-pointer hover:bg-gray-100 transition-colors duration-200"
+                    >
+                      <h3 className="font-medium text-lg">{session.title}</h3>
+                      <p className="text-sm text-gray-600">Date: {session.date}</p>
+                      <p className="text-sm text-gray-600">Total Expense: ${session.totalExpense.toFixed(2)}</p>
+                      <p className="text-sm text-gray-600">Participants: {session.participants.length + 1}</p>
+                    </li>
+                  ))}
+                </ul>
               )}
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-};
+            </div>
+          );
+        };
 
-// --- Activities Page Component ---
-const ActivitiesPage = ({ sessions, message }) => {
-  const [selectedSession, setSelectedSession] = useState(null);
+        // --- Session Detail Page Component ---
+        const SessionDetailPage = ({ session, onBack }) => {
+          const numParticipants = session.participants.length + 1;
+          const individualShare = session.totalExpense / numParticipants;
 
-  const handleBackToList = () => {
-    setSelectedSession(null);
-  };
+          return (
+            <div className="p-4 bg-white rounded-2xl shadow-xl">
+              <button
+                onClick={onBack}
+                className="flex items-center text-blue-600 hover:text-blue-800 transition-colors duration-200 mb-4"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+                Back to Activities
+              </button>
+              <h2 className="text-2xl font-semibold mb-4">{session.title}</h2>
+              <p className="text-gray-700 mb-2"><strong>Date:</strong> {session.date}</p>
+              <p className="text-gray-700 mb-2"><strong>Total Expense:</strong> ${session.totalExpense.toFixed(2)}</p>
+              <p className="text-gray-700 mb-4"><strong>Individual Share:</strong> ${individualShare.toFixed(2)}</p>
 
-  if (selectedSession) {
-    return (
-      <SessionDetailPage session={selectedSession} onBack={handleBackToList} />
-    );
-  }
+              <h3 className="text-xl font-semibold mb-3">Participants:</h3>
+              <ul className="list-disc list-inside space-y-1">
+                <li>You (App User)</li>
+                {session.participants.map((p, index) => (
+                  <li key={index}>{p}</li>
+                ))}
+              </ul>
+            </div>
+          );
+        };
 
-  return (
-    <div className="p-4 bg-white rounded-2xl shadow-xl">
-      <h2 className="text-2xl font-semibold mb-6 text-center">All Activities</h2>
-      {sessions.length === 0 ? (
-        <p className="text-center text-gray-500">No sessions recorded yet.</p>
-      ) : (
-        <ul className="space-y-3">
-          {[...sessions].reverse().map(session => ( // Display in reverse chronological order
-            <li
-              key={session.id}
-              onClick={() => setSelectedSession(session)}
-              className="bg-gray-50 p-4 rounded-xl shadow-sm cursor-pointer hover:bg-gray-100 transition-colors duration-200"
-            >
-              <h3 className="font-medium text-lg">{session.title}</h3>
-              <p className="text-sm text-gray-600">Date: {session.date}</p>
-              <p className="text-sm text-gray-600">Total Expense: ${session.totalExpense.toFixed(2)}</p>
-              <p className="text-sm text-gray-600">Participants: {session.participants.length + 1}</p>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-};
+        // This is where your React App is rendered into the 'root' div
+        // For React 18, use createRoot. For simplicity with CDN, we use render.
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
 
-// --- Session Detail Page Component ---
-const SessionDetailPage = ({ session, onBack }) => {
-  const numParticipants = session.participants.length + 1;
-  const individualShare = session.totalExpense / numParticipants;
-
-  return (
-    <div className="p-4 bg-white rounded-2xl shadow-xl">
-      <button
-        onClick={onBack}
-        className="flex items-center text-blue-600 hover:text-blue-800 transition-colors duration-200 mb-4"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
-          <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
-        </svg>
-        Back to Activities
-      </button>
-      <h2 className="text-2xl font-semibold mb-4">{session.title}</h2>
-      <p className="text-gray-700 mb-2"><strong>Date:</strong> {session.date}</p>
-      <p className="text-gray-700 mb-2"><strong>Total Expense:</strong> ${session.totalExpense.toFixed(2)}</p>
-      <p className="text-gray-700 mb-4"><strong>Individual Share:</strong> ${individualShare.toFixed(2)}</p>
-
-      <h3 className="text-xl font-semibold mb-3">Participants:</h3>
-      <ul className="list-disc list-inside space-y-1">
-        <li>You (App User)</li>
-        {session.participants.map((p, index) => (
-          <li key={index}>{p}</li>
-        ))}
-      </ul>
-    </div>
-  );
-};
-
-export default App;
+    </script>
+</body>
+</html>
