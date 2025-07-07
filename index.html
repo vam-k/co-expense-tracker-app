@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Co-Expense Tracker</title>
+    <!-- Apple Touch Icon for Home Screen -->
+    <link rel="apple-touch-icon" href="app-icon.png"> <!-- Make sure 'app-icon.png' is the correct path to your icon file -->
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Inter font from Google Fonts (Optional, but good for consistent look) -->
@@ -20,6 +22,10 @@
         .animate-fade-in-out {
             animation: fadeInOut 3s ease-in-out forwards;
         }
+        /* Modal Overlay */
+        .modal-overlay {
+            background-color: rgba(0, 0, 0, 0.5);
+        }
     </style>
 </head>
 <body>
@@ -32,18 +38,17 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <script type="text/babel">
-        // Your React App Component code goes here
-        // Make sure to copy the entire 'App' function and all its sub-components
-        // (NavItem, AddSessionPage, SummaryPage, ActivitiesPage, SessionDetailPage)
-        // from the previous 'co-expense-tracker-app' immersive.
-
         // Main App Component
         function App() {
-          // Changed useState, useEffect, useCallback to React.useState, React.useEffect, React.useCallback
-          const [currentPage, setCurrentPage] = React.useState('addSession'); // Default to addSession page, no auth
+          const [currentPage, setCurrentPage] = React.useState('addSession');
           const [sessions, setSessions] = React.useState([]);
-          const [friendBalances, setFriendBalances] = React.useState({}); // { 'Friend Name': balance }
-          const [message, setMessage] = React.useState(''); // For displaying user messages (e.g., success, error)
+          const [friendBalances, setFriendBalances] = React.useState({});
+          const [message, setMessage] = React.useState('');
+          const [editingSession, setEditingSession] = React.useState(null); // State to hold session being edited
+          const [showConfirmModal, setShowConfirmModal] = React.useState(false);
+          const [confirmAction, setConfirmAction] = React.useState(null); // Function to call on confirm
+          const [confirmMessage, setConfirmMessage] = React.useState('');
+          const [confirmTitle, setConfirmTitle] = React.useState('');
 
           // --- Data Persistence (Local Storage only) ---
           const loadData = React.useCallback(() => {
@@ -79,23 +84,64 @@
           }, [loadData]);
 
           // --- Session Management Logic ---
-          const handleAddSession = (newSession) => {
-            // Calculate individual share
-            const numParticipants = newSession.participants.length + 1; // +1 for the app user
-            const individualShare = newSession.totalExpense / numParticipants;
+          const calculateBalances = React.useCallback((currentSessions) => {
+            const newBalances = {};
+            currentSessions.forEach(session => {
+              const numParticipants = session.participants.length + 1; // +1 for the app user (Vam)
+              const individualShare = session.totalExpense / numParticipants;
 
-            // Update friend balances
-            const updatedBalances = { ...friendBalances };
-            newSession.participants.forEach(friend => {
-              updatedBalances[friend] = (updatedBalances[friend] || 0) + individualShare;
+              session.participants.forEach(friend => {
+                if (friend !== 'Vam') { // Ensure 'Vam' is not added to friend balances as they are the app user
+                  newBalances[friend] = (newBalances[friend] || 0) + individualShare;
+                }
+              });
             });
+            return newBalances;
+          }, []);
 
-            const updatedSessions = [...sessions, newSession];
+          const handleAddOrUpdateSession = (newSession) => {
+            let updatedSessions;
+            if (editingSession) {
+              // Update existing session
+              updatedSessions = sessions.map(s =>
+                s.id === newSession.id ? newSession : s
+              );
+              setMessage('Session updated successfully!');
+            } else {
+              // Add new session
+              updatedSessions = [...sessions, newSession];
+              setMessage('Session added successfully!');
+            }
+
+            const updatedBalances = calculateBalances(updatedSessions);
+
             setSessions(updatedSessions);
             setFriendBalances(updatedBalances);
             saveData(updatedSessions, updatedBalances);
-            setMessage('Session added successfully!');
-            setCurrentPage('summary'); // Go to summary after adding session
+            setEditingSession(null); // Clear editing state
+            setCurrentPage('summary'); // Go to summary after adding/updating session
+          };
+
+          const handleDeleteSession = (sessionIdToDelete) => {
+            // Confirm before deleting
+            setConfirmTitle('Confirm Deletion');
+            setConfirmMessage('Are you sure you want to delete this session? This action cannot be undone.');
+            setConfirmAction(() => () => { // Wrap in a function to pass to modal
+                const updatedSessions = sessions.filter(s => s.id !== sessionIdToDelete);
+                const updatedBalances = calculateBalances(updatedSessions); // Recalculate all balances
+
+                setSessions(updatedSessions);
+                setFriendBalances(updatedBalances);
+                saveData(updatedSessions, updatedBalances);
+                setMessage('Session deleted successfully!');
+                setShowConfirmModal(false); // Close modal
+            });
+            setShowConfirmModal(true);
+          };
+
+          const handleEditSession = (session) => {
+            setEditingSession(session);
+            setCurrentPage('addSession');
           };
 
           // --- Balance Settlement Logic ---
@@ -107,6 +153,22 @@
               saveData(sessions, updatedBalances);
               setMessage(`${friendName}'s balance settled!`);
             }
+          };
+
+          // --- Clear All Data Logic ---
+          const handleClearAllData = () => {
+            setConfirmTitle('Confirm Clear All Data');
+            setConfirmMessage('Are you sure you want to clear ALL app data? This will delete all sessions and reset all balances.');
+            setConfirmAction(() => () => { // Wrap in a function to pass to modal
+                localStorage.removeItem('coExpenseTrackerSessions');
+                localStorage.removeItem('coExpenseTrackerBalances');
+                setSessions([]);
+                setFriendBalances({});
+                setMessage('All data cleared successfully!');
+                setShowConfirmModal(false); // Close modal
+                setCurrentPage('addSession'); // Go to add session page
+            });
+            setShowConfirmModal(true);
           };
 
           // --- Message Display ---
@@ -121,16 +183,15 @@
 
           // --- Render Pages ---
           const renderPage = () => {
-            // No authentication page, directly render content
             switch (currentPage) {
               case 'addSession':
-                return <AddSessionPage onAddSession={handleAddSession} message={message} />;
+                return <AddSessionPage onAddOrUpdateSession={handleAddOrUpdateSession} editingSession={editingSession} message={message} />;
               case 'summary':
-                return <SummaryPage friendBalances={friendBalances} onSettleUp={handleSettleUp} message={message} />;
+                return <SummaryPage friendBalances={friendBalances} onSettleUp={handleSettleUp} onClearAllData={handleClearAllData} message={message} />;
               case 'activities':
-                return <ActivitiesPage sessions={sessions} message={message} />;
+                return <ActivitiesPage sessions={sessions} onEditSession={handleEditSession} onDeleteSession={handleDeleteSession} message={message} />;
               default:
-                return <AddSessionPage onAddSession={handleAddSession} message={message} />;
+                return <AddSessionPage onAddOrUpdateSession={handleAddOrUpdateSession} editingSession={editingSession} message={message} />;
             }
           };
 
@@ -153,15 +214,51 @@
                 </div>
               )}
 
+              {/* Confirmation Modal */}
+              {showConfirmModal && (
+                <ConfirmationModal
+                  title={confirmTitle}
+                  message={confirmMessage}
+                  onConfirm={confirmAction}
+                  onCancel={() => setShowConfirmModal(false)}
+                />
+              )}
+
               {/* Navigation */}
               <nav className="bg-white p-3 shadow-lg rounded-t-xl flex justify-around items-center border-t border-gray-200">
-                <NavItem icon="+" label="Add Session" onClick={() => setCurrentPage('addSession')} current={currentPage === 'addSession'} />
+                <NavItem icon="+" label="Add Session" onClick={() => { setCurrentPage('addSession'); setEditingSession(null); }} current={currentPage === 'addSession'} />
                 <NavItem icon="📊" label="Summary" onClick={() => setCurrentPage('summary')} current={currentPage === 'summary'} />
                 <NavItem icon="📋" label="Activities" onClick={() => setCurrentPage('activities')} current={currentPage === 'activities'} />
               </nav>
             </div>
           );
         }
+
+        // --- Reusable Confirmation Modal Component ---
+        const ConfirmationModal = ({ title, message, onConfirm, onCancel }) => {
+            return (
+                <div className="fixed inset-0 flex items-center justify-center z-50 modal-overlay">
+                    <div className="bg-white p-6 rounded-2xl shadow-2xl max-w-sm w-full text-center">
+                        <h3 className="text-xl font-semibold mb-4">{title}</h3>
+                        <p className="text-gray-700 mb-6">{message}</p>
+                        <div className="flex justify-around space-x-4">
+                            <button
+                                onClick={onCancel}
+                                className="flex-1 bg-gray-300 text-gray-800 p-3 rounded-xl font-semibold hover:bg-gray-400 transition-colors duration-200"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={onConfirm}
+                                className="flex-1 bg-red-500 text-white p-3 rounded-xl font-semibold hover:bg-red-600 transition-colors duration-200"
+                            >
+                                Confirm
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
 
         // --- Navigation Item Component ---
         const NavItem = ({ icon, label, onClick, current }) => (
@@ -177,12 +274,15 @@
         );
 
         // --- Add Session Page Component ---
-        const AddSessionPage = ({ onAddSession, message }) => {
-          // Changed useState to React.useState
-          const [sessionTitle, setSessionTitle] = React.useState('');
-          const [sessionDate, setSessionDate] = React.useState(new Date().toISOString().split('T')[0]); //YYYY-MM-DD
-          const [participants, setParticipants] = React.useState(['']); // Start with one empty participant input
-          const [totalExpense, setTotalExpense] = React.useState('');
+        const AddSessionPage = ({ onAddOrUpdateSession, editingSession, message }) => {
+          const [sessionTitle, setSessionTitle] = React.useState(editingSession ? editingSession.title : '');
+          const [sessionDate, setSessionDate] = React.useState(editingSession ? editingSession.date : new Date().toISOString().split('T')[0]);
+          // Initialize participants with 'Vam' and then existing participants if editing
+          const initialParticipants = editingSession
+            ? ['Vam', ...editingSession.participants.filter(p => p !== 'Vam')]
+            : ['Vam', '']; // Modified: Added an empty string for the second default participant field
+          const [participants, setParticipants] = React.useState(initialParticipants);
+          const [totalExpense, setTotalExpense] = React.useState(editingSession ? editingSession.totalExpense.toString() : '');
 
           const handleAddParticipant = () => {
             setParticipants([...participants, '']);
@@ -197,32 +297,37 @@
           const handleSubmit = (e) => {
             e.preventDefault();
 
+            // Filter out empty participant fields and ensure 'Vam' is always present
+            const filteredParticipants = participants.filter(p => p.trim() !== '' && p.trim() !== 'Vam');
+
             // Basic validation
-            if (!sessionTitle || !sessionDate || !totalExpense || participants.some(p => !p.trim())) {
-              alert('Please fill in all fields and ensure all participant names are entered.'); // Using alert for simplicity, replace with custom modal in production
+            if (!sessionTitle || !sessionDate || !totalExpense || filteredParticipants.some(p => !p.trim())) {
+              alert('Please fill in all fields and ensure all participant names are entered.');
               return;
             }
 
-            const newSession = {
-              id: Date.now(), // Unique ID for the session
+            const sessionToSave = {
+              id: editingSession ? editingSession.id : Date.now(), // Use existing ID if editing, otherwise new ID
               title: sessionTitle,
               date: sessionDate,
-              participants: participants.filter(p => p.trim() !== ''), // Filter out empty participant fields
+              participants: filteredParticipants, // Store only other participants
               totalExpense: parseFloat(totalExpense),
             };
 
-            onAddSession(newSession);
+            onAddOrUpdateSession(sessionToSave);
 
-            // Reset form
-            setSessionTitle('');
-            setSessionDate(new Date().toISOString().split('T')[0]);
-            setParticipants(['']);
-            setTotalExpense('');
+            // Reset form if not editing or after update
+            if (!editingSession) {
+                setSessionTitle('');
+                setSessionDate(new Date().toISOString().split('T')[0]);
+                setParticipants(['Vam', '']); // Reset to default Vam and one empty field
+                setTotalExpense('');
+            }
           };
 
           return (
             <div className="p-4 bg-white rounded-2xl shadow-xl">
-              <h2 className="text-2xl font-semibold mb-6 text-center">Add New Session</h2>
+              <h2 className="text-2xl font-semibold mb-6 text-center">{editingSession ? 'Edit Session' : 'Add New Session'}</h2>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <label htmlFor="sessionTitle" className="block text-sm font-medium text-gray-700 mb-1">Session Title</label>
@@ -258,10 +363,11 @@
                         value={participant}
                         onChange={(e) => handleParticipantChange(index, e.target.value)}
                         className="flex-grow p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder={`Friend ${index + 1} Name`}
+                        placeholder={index === 0 ? 'Vam (You)' : `Friend ${index} Name`} 
+                        readOnly={index === 0} // Make 'Vam' input read-only
                         required
                       />
-                      {participants.length > 1 && (
+                      {index > 0 && participants.length > 1 && ( // Allow removing only if not 'Vam' and more than one friend
                         <button
                           type="button"
                           onClick={() => setParticipants(participants.filter((_, i) => i !== index))}
@@ -301,7 +407,7 @@
                   type="submit"
                   className="w-full bg-blue-500 text-white p-4 rounded-xl font-bold text-lg hover:bg-blue-600 transition-colors duration-200 shadow-lg"
                 >
-                  Add Session
+                  {editingSession ? 'Update Session' : 'Add Session'}
                 </button>
               </form>
             </div>
@@ -309,7 +415,7 @@
         };
 
         // --- Summary Page Component ---
-        const SummaryPage = ({ friendBalances, onSettleUp, message }) => {
+        const SummaryPage = ({ friendBalances, onSettleUp, onClearAllData, message }) => {
           const friends = Object.keys(friendBalances).sort();
 
           return (
@@ -339,13 +445,18 @@
                   ))}
                 </ul>
               )}
+              <button
+                onClick={onClearAllData}
+                className="w-full bg-red-500 text-white p-3 rounded-xl font-semibold hover:bg-red-600 transition-colors duration-200 shadow-md mt-6"
+              >
+                Clear All Data
+              </button>
             </div>
           );
         };
 
         // --- Activities Page Component ---
-        const ActivitiesPage = ({ sessions, message }) => {
-          // Changed useState to React.useState
+        const ActivitiesPage = ({ sessions, onEditSession, onDeleteSession, message }) => {
           const [selectedSession, setSelectedSession] = React.useState(null);
 
           const handleBackToList = () => {
@@ -368,13 +479,28 @@
                   {[...sessions].reverse().map(session => ( // Display in reverse chronological order
                     <li
                       key={session.id}
-                      onClick={() => setSelectedSession(session)}
-                      className="bg-gray-50 p-4 rounded-xl shadow-sm cursor-pointer hover:bg-gray-100 transition-colors duration-200"
+                      className="bg-gray-50 p-4 rounded-xl shadow-sm flex flex-col"
                     >
-                      <h3 className="font-medium text-lg">{session.title}</h3>
-                      <p className="text-sm text-gray-600">Date: {session.date}</p>
-                      <p className="text-sm text-gray-600">Total Expense: ${session.totalExpense.toFixed(2)}</p>
-                      <p className="text-sm text-gray-600">Participants: {session.participants.length + 1}</p>
+                      <div onClick={() => setSelectedSession(session)} className="cursor-pointer">
+                          <h3 className="font-medium text-lg">{session.title}</h3>
+                          <p className="text-sm text-gray-600">Date: {session.date}</p>
+                          <p className="text-sm text-gray-600">Total Expense: ${session.totalExpense.toFixed(2)}</p>
+                          <p className="text-sm text-gray-600">Participants: {session.participants.length + 1}</p>
+                      </div>
+                      <div className="flex justify-end space-x-2 mt-3">
+                          <button
+                              onClick={() => onEditSession(session)}
+                              className="bg-blue-500 text-white px-3 py-1 rounded-lg text-sm hover:bg-blue-600 transition-colors duration-200"
+                          >
+                              Edit
+                          </button>
+                          <button
+                              onClick={() => onDeleteSession(session.id)}
+                              className="bg-red-500 text-white px-3 py-1 rounded-lg text-sm hover:bg-red-600 transition-colors duration-200"
+                          >
+                              Delete
+                          </button>
+                      </div>
                     </li>
                   ))}
                 </ul>
@@ -406,7 +532,7 @@
 
               <h3 className="text-xl font-semibold mb-3">Participants:</h3>
               <ul className="list-disc list-inside space-y-1">
-                <li>You (App User)</li>
+                <li>Vam (You)</li>
                 {session.participants.map((p, index) => (
                   <li key={index}>{p}</li>
                 ))}
@@ -415,11 +541,8 @@
           );
         };
 
-        // This is where your React App is rendered into the 'root' div
-        // For React 18, use createRoot. For simplicity with CDN, we use render.
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
 
     </script>
 </body>
-</html>
